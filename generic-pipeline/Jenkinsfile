@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'PIPELINE_NAME', defaultValue: 'pipeline-1')
+        choice(name: 'BEHAVIOR', choices: ['success', 'fail', 'random', 'slow'])
+    }
+
+    triggers {
+        cron('*/5 * * * *') // runs every 5 mins
+    }
+
+    stages {
+        stage('Init') {
+            steps {
+                echo "Running ${params.PIPELINE_NAME}"
+            }
+        }
+
+        stage('Execute') {
+            steps {
+                script {
+                    if (params.BEHAVIOR == 'success') {
+                        echo "Success pipeline"
+                    }
+
+                    if (params.BEHAVIOR == 'fail') {
+                        error "Intentional failure"
+                    }
+
+                    if (params.BEHAVIOR == 'random') {
+                        def r = new Random().nextInt(2)
+                        if (r == 0) {
+                            echo "Random success"
+                        } else {
+                            error "Random failure"
+                        }
+                    }
+
+                    if (params.BEHAVIOR == 'slow') {
+                        echo "Slow pipeline running..."
+                        sleep 30
+                    }
+                }
+            }
+        }
+    }
+}
