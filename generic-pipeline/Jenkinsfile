@@ -1,47 +1,43 @@
-pipeline {
-    agent any
+// seed-job/Jenkinsfile
+def pipelines = []
 
-    parameters {
-        string(name: 'PIPELINE_NAME', defaultValue: 'pipeline-1')
-        choice(name: 'BEHAVIOR', choices: ['success', 'fail', 'random', 'slow'])
-    }
+// Generate 50 pipeline names
+for (int i = 1; i <= 50; i++) {
+    pipelines.add("pipeline-${i}")
+}
 
-    triggers {
-        cron('*/5 * * * *') // runs every 5 mins
-    }
-
-    stages {
-        stage('Init') {
-            steps {
-                echo "Running ${params.PIPELINE_NAME}"
-            }
-        }
-
-        stage('Execute') {
-            steps {
-                script {
-                    if (params.BEHAVIOR == 'success') {
-                        echo "Success pipeline"
-                    }
-
-                    if (params.BEHAVIOR == 'fail') {
-                        error "Intentional failure"
-                    }
-
-                    if (params.BEHAVIOR == 'random') {
-                        def r = new Random().nextInt(2)
-                        if (r == 0) {
-                            echo "Random success"
-                        } else {
-                            error "Random failure"
+job('generate-multiple-pipelines') {
+    description('Generates 50 pipeline jobs from a single template')
+    
+    steps {
+        dsl {
+            pipelines.each { pipelineName ->
+                text("""
+                    pipelineJob('${pipelineName}') {
+                        definition {
+                            cpsScm {
+                                scm {
+                                    git {
+                                        remote {
+                                            url('https://github.com/Rai-13/jenkins-pipelines.git')
+                                            branch('main')
+                                        }
+                                    }
+                                }
+                                scriptPath('generic-pipeline/Jenkinsfile')
+                            }
+                        }
+                        
+                        parameters {
+                            stringParam('PIPELINE_NAME', '${pipelineName}', 'Name of the pipeline')
+                            choiceParam('BEHAVIOR', ['success', 'fail', 'random', 'slow'], 'Pipeline behavior')
+                        }
+                        
+                        triggers {
+                            cron('*/5 * * * *')
                         }
                     }
-
-                    if (params.BEHAVIOR == 'slow') {
-                        echo "Slow pipeline running..."
-                        sleep 30
-                    }
-                }
+                """)
             }
         }
     }
